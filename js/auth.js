@@ -218,7 +218,6 @@ loginForm.addEventListener("submit", async (e) => {
   }
 });
 
-
 // ---- Recuperação de senha ----
 document.getElementById("recCancel").addEventListener("click", () => {
   // limpar campos e mensagem
@@ -255,11 +254,25 @@ recoverForm.addEventListener("submit", async (e) => {
 
     const body = await parseResponse(res);
 
+    // if (!res.ok) {
+    //   msgEl.style.color = "red";
+    //   // mensagem amigável definida pelo servidor ou genérica
+    //   msgEl.textContent = body.error || `Erro ${res.status}`;
+    //   console.error("Recuperação falhou:", body);
+    //   return;
+    // }
     if (!res.ok) {
-      msgEl.style.color = "red";
-      // mensagem amigável definida pelo servidor ou genérica
-      msgEl.textContent = body.error || `Erro ${res.status}`;
-      console.error("Recuperação falhou:", body);
+      const errMsg = errorText(body, `Falha no login (${res.status})`);
+
+      if (res.status === 429 && body && body.lockedUntil) {
+        const remainingMs = body.lockedUntil - Date.now();
+        const remainingMin = Math.ceil(Math.max(0, remainingMs) / 60000);
+        loginMsg.textContent = `Conta bloqueada. Tente novamente em ${remainingMin} minuto(s).`;
+      } else {
+        loginMsg.textContent = errMsg;
+      }
+      loginMsg.style.color = "red";
+      console.error("Login falhou:", body);
       return;
     }
 
