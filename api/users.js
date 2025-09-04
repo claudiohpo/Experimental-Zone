@@ -391,31 +391,93 @@ module.exports = async (req, res) => {
 
         console.log("[login] resultado compare:", match);
 
+        // if (!match) {
+        //   // incremento atômico e retorna documento atualizado
+        //   try {
+        //     const incRes = await users.findOneAndUpdate(
+        //       { _id: user._id },
+        //       { $inc: { failedLoginAttempts: 1 } },
+        //       { returnDocument: "after" } // driver moderno
+        //     );
+
+        //     const attempts =
+        //       (incRes.value && incRes.value.failedLoginAttempts) || 0;
+        //     console.log("[login] tentativas após increment:", attempts);
+
+        //     if (attempts >= MAX_LOGIN_ATTEMPTS) {
+        //       // bloqueio: usa findOneAndUpdate para garantir atomicidade na escrita do lockedUntil
+        //       const lockUntil = Date.now() + LOCK_MINUTES * 60 * 1000;
+        //       await users.findOneAndUpdate(
+        //         { _id: user._id },
+        //         { $set: { lockedUntil: lockUntil } },
+        //         { returnDocument: "after" }
+        //       );
+        //       console.log(
+        //         "[login] usuário bloqueado até:",
+        //         new Date(lockUntil).toISOString()
+        //       );
+        //       res.statusCode = 429;
+        //       return res.end(
+        //         JSON.stringify({
+        //           error:
+        //             "Conta temporariamente bloqueada. Tente novamente mais tarde.",
+        //           lockedUntil: lockUntil,
+        //         })
+        //       );
+        //     }
+
+        //     // ainda não atingiu limite, retorno padrão de credenciais inválidas
+        //     res.statusCode = 401;
+        //     return res.end(
+        //       JSON.stringify({ error: "Usuário ou senha inválidos." })
+        //     );
+        //   } catch (errInc) {
+        //     console.error(
+        //       "[login] erro ao incrementar tentativas:",
+        //       errInc && errInc.stack ? errInc.stack : errInc
+        //     );
+        //     // fallback: se o incremento falhar, apenas trate como falha de login
+        //     res.statusCode = 401;
+        //     return res.end(
+        //       JSON.stringify({ error: "Usuário ou senha inválidos." })
+        //     );
+        //   }
+        // }
+        // substitua o bloco antigo por este
         if (!match) {
-          // incremento atômico e retorna documento atualizado
           try {
-            const incRes = await users.findOneAndUpdate(
+            // 1) incrementa de forma atômica
+            await users.updateOne(
               { _id: user._id },
-              { $inc: { failedLoginAttempts: 1 } },
-              { returnDocument: "after" } // driver moderno
+              { $inc: { failedLoginAttempts: 1 } }
             );
 
-            const attempts =
-              (incRes.value && incRes.value.failedLoginAttempts) || 0;
-            console.log("[login] tentativas após increment:", attempts);
+            // 2) lê o valor atualizado
+            const updated = await users.findOne(
+              { _id: user._id },
+              { projection: { failedLoginAttempts: 1, lockedUntil: 1 } }
+            );
+
+            const attempts = (updated && updated.failedLoginAttempts) || 0;
+            console.log(
+              "[login] tentativas após increment (via findOne):",
+              attempts,
+              "lockedUntil(db)=",
+              updated && updated.lockedUntil
+            );
 
             if (attempts >= MAX_LOGIN_ATTEMPTS) {
-              // bloqueio: usa findOneAndUpdate para garantir atomicidade na escrita do lockedUntil
               const lockUntil = Date.now() + LOCK_MINUTES * 60 * 1000;
-              await users.findOneAndUpdate(
+              // grava lockedUntil (timestamp em ms)
+              await users.updateOne(
                 { _id: user._id },
-                { $set: { lockedUntil: lockUntil } },
-                { returnDocument: "after" }
+                { $set: { lockedUntil: lockUntil } }
               );
               console.log(
                 "[login] usuário bloqueado até:",
                 new Date(lockUntil).toISOString()
               );
+
               res.statusCode = 429;
               return res.end(
                 JSON.stringify({
@@ -426,17 +488,16 @@ module.exports = async (req, res) => {
               );
             }
 
-            // ainda não atingiu limite, retorno padrão de credenciais inválidas
+            // ainda não atingiu limite
             res.statusCode = 401;
             return res.end(
               JSON.stringify({ error: "Usuário ou senha inválidos." })
             );
           } catch (errInc) {
             console.error(
-              "[login] erro ao incrementar tentativas:",
+              "[login] erro ao incrementar tentativas (fallback):",
               errInc && errInc.stack ? errInc.stack : errInc
             );
-            // fallback: se o incremento falhar, apenas trate como falha de login
             res.statusCode = 401;
             return res.end(
               JSON.stringify({ error: "Usuário ou senha inválidos." })
