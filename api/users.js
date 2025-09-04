@@ -293,7 +293,7 @@ module.exports = async (req, res) => {
     console.log("Parsed body:", body);
 
     // ===================== BLOCO DE LOGIN INSTRUMENTADO (substituir o antigo) =====================
-    // ===================== BLOCO DE LOGIN (ATUALIZADO: bloqueio + liberação automática) =====================
+    // ===================== BLOCO DE LOGIN (robusto: conversão de tipos + lock atômico) =====================
     if (action === "login") {
       console.log("[action=login] entrada do bloco login");
       try {
@@ -314,7 +314,7 @@ module.exports = async (req, res) => {
         const usernameNormalized = String(username).trim().toLowerCase();
         console.log("[login] usernameNormalized:", usernameNormalized);
 
-        // buscar usuário
+        // buscar usuário (fresh)
         let user = await users.findOne({ username: usernameNormalized });
         console.log("[login] user encontrado?", !!user);
 
@@ -326,8 +326,17 @@ module.exports = async (req, res) => {
           );
         }
 
+        // --- normaliza lockedUntil para número (milissegundos) para comparações seguras ---
+        const lockedUntilTs = (function (v) {
+          if (!v) return 0;
+          if (typeof v === "number") return v;
+          if (v instanceof Date) return v.getTime();
+          const n = Number(v);
+          return Number.isFinite(n) ? n : 0;
+        })(user.lockedUntil);
+
         // --- auto-unlock: se bloqueado e o tempo já passou, libere e zere contador ---
-        if (user.lockedUntil && user.lockedUntil <= Date.now()) {
+        if (lockedUntilTs && lockedUntilTs <= Date.now()) {
           await users.updateOne(
             { _id: user._id },
             { $set: { failedLoginAttempts: 0, lockedUntil: null } }
@@ -338,20 +347,18 @@ module.exports = async (req, res) => {
           console.log(
             "[login] conta desbloqueada automaticamente (expiration passed)."
           );
-        }
-
-        // se ainda estiver bloqueado, recuse
-        if (user.lockedUntil && user.lockedUntil > Date.now()) {
+        } else if (lockedUntilTs && lockedUntilTs > Date.now()) {
+          // ainda bloqueada: recusa imediatamente
           console.log(
             "[login] tentativa em conta bloqueada até:",
-            new Date(user.lockedUntil).toISOString()
+            new Date(lockedUntilTs).toISOString()
           );
           res.statusCode = 429;
           return res.end(
             JSON.stringify({
               error:
                 "Conta temporariamente bloqueada. Tente novamente mais tarde.",
-              lockedUntil: user.lockedUntil,
+              lockedUntil: lockedUntilTs,
             })
           );
         }
@@ -390,7 +397,7 @@ module.exports = async (req, res) => {
             const incRes = await users.findOneAndUpdate(
               { _id: user._id },
               { $inc: { failedLoginAttempts: 1 } },
-              { returnDocument: "after" }
+              { returnDocument: "after" } // driver moderno
             );
 
             const attempts =
@@ -398,11 +405,12 @@ module.exports = async (req, res) => {
             console.log("[login] tentativas após increment:", attempts);
 
             if (attempts >= MAX_LOGIN_ATTEMPTS) {
-              const lockUntil = Date.now() + LOCK_MINUTES * 60 * 1000; // LOCK_MINUTES em minutos
-              // define lockedUntil (não zera o contador — mantém histórico)
-              await users.updateOne(
+              // bloqueio: usa findOneAndUpdate para garantir atomicidade na escrita do lockedUntil
+              const lockUntil = Date.now() + LOCK_MINUTES * 60 * 1000;
+              await users.findOneAndUpdate(
                 { _id: user._id },
-                { $set: { lockedUntil: lockUntil } }
+                { $set: { lockedUntil: lockUntil } },
+                { returnDocument: "after" }
               );
               console.log(
                 "[login] usuário bloqueado até:",
@@ -436,7 +444,7 @@ module.exports = async (req, res) => {
           }
         }
 
-        // senha correta -> reset de tentativas e desbloqueia se necessário
+        // --- senha correta -> reset de tentativas e desbloqueia se necessário ---
         await users.updateOne(
           { _id: user._id },
           { $set: { failedLoginAttempts: 0, lockedUntil: null } }
@@ -460,7 +468,7 @@ module.exports = async (req, res) => {
         );
       }
     }
-    // ================================================================================================
+    // ===================== FIM BLOCO DE LOGIN INSTRUMENTADO =====================
 
     // ========================================================================
 
