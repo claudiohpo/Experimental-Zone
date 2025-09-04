@@ -75,7 +75,7 @@ registerForm.addEventListener("submit", async (e) => {
 
     if (!res.ok) {
       msgEl.style.color = "red";
-      msgEl.textContent = body.error || `Erro ${res.status}`;
+      msgEl.textContent = errorText(body, `Erro ${res.status}`);
       console.error("Cadastro falhou:", body);
       return;
     }
@@ -116,12 +116,20 @@ loginForm.addEventListener("submit", async (e) => {
 
     const body = await parseResponse(res);
 
+    // após parseResponse(res) ter retornado body
     if (!res.ok) {
-      loginMsg.style.color = "red";
-      loginMsg.textContent = body.error || `Falha no login (${res.status})`;
-      console.error("Login falhou:", body);
+      msgEl.style.color = "red";
+      msgEl.textContent = errorText(body, `Erro ${res.status}`);
+      console.error("Recuperação falhou:", body);
       return;
     }
+
+    hideOverlay(overlayRecover);
+    document.getElementById("recResultUser").textContent = username || "";
+    document.getElementById("recResultPassword").value = ""; // sempre vazio
+    document.getElementById("recResultNote").textContent =
+      "Se houver uma conta com esses dados, um link de recuperação foi enviado para o e-mail cadastrado (se configurado).";
+    showOverlay(overlayRecoverResult);
 
     // grava sessão somente em sessionStorage (não persiste entre janelas)
     sessionStorage.setItem("km_username", username);
@@ -228,7 +236,7 @@ recoverForm.addEventListener("submit", async (e) => {
     // preenche o input (mantendo type="password" por padrão)
     const resultInput = document.getElementById("recResultPassword");
     resultInput.type = "password";
-    resultInput.value = senha;
+    //resultInput.value = senha;
 
     showOverlay(overlayRecoverResult);
   } catch (err) {
@@ -331,3 +339,19 @@ const svgEyeClosed = `
     });
   });
 })();
+
+function errorText(body, fallback) {
+  if (!body) return fallback || "Erro";
+  if (typeof body === "string") return body;
+  if (body.error) {
+    if (typeof body.error === "string") return body.error;
+    if (body.error.message) return body.error.message;
+    try {
+      return JSON.stringify(body.error);
+    } catch (e) {
+      return fallback || "Erro";
+    }
+  }
+  if (body.message) return body.message;
+  return fallback || JSON.stringify(body);
+}

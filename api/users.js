@@ -5,7 +5,7 @@ const DB_NAME = process.env.DB_NAME || "km_db";
 const USERS_COLLECTION = process.env.USERS_COLLECTION || "usuarios";
 
 // ===================== A INSERIR NO TOPO DE api/users.js =====================
-const bcrypt = require("bcrypt");
+const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
 const nodemailer = require("nodemailer");
 
@@ -244,7 +244,8 @@ module.exports = async (req, res) => {
       }
 
       // hash da senha
-      const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
+      const passwordHash = bcrypt.hashSync(password, BCRYPT_ROUNDS);
+
 
       const newUser = {
         username: usernameNormalized,
@@ -310,7 +311,8 @@ module.exports = async (req, res) => {
         );
       }
 
-      const match = await bcrypt.compare(password, user.passwordHash || "");
+      const match = bcrypt.compareSync(password, user.passwordHash || "");
+
 
       if (!match) {
         // incrementar tentativas para lockout
@@ -376,7 +378,8 @@ module.exports = async (req, res) => {
       }
 
       // tudo ok: grava nova senha (hash)
-      const newHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
+      const newHash = bcrypt.hashSync(newPassword, BCRYPT_ROUNDS);
+
       await users.updateOne(
         { _id: user._id },
         {
