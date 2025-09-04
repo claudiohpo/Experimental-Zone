@@ -53,6 +53,10 @@ async function readRawBody(req) {
 module.exports = async (req, res) => {
   res.setHeader("Content-Type", "application/json; charset=utf-8");
 
+    // debug temporário - LOGS
+  console.log("--- /api/users called ---", { method: req.method, url: req.url });
+
+
   try {
     if (req.method !== "POST") {
       res.statusCode = 405;
@@ -281,7 +285,13 @@ module.exports = async (req, res) => {
     //   return res.end(JSON.stringify({ message: "OK" }));
     // }
     // ===================== SUBSTITUIR bloco "login" =====================
+      //apagar depois o console
+      console.log("Parsed body:", body);
+
     if (action === "login") {
+      //apagar depois o console
+        console.log("Login attempt:", { username });
+
       const { username, password } = body;
       if (!username || !password) {
         res.statusCode = 400;
