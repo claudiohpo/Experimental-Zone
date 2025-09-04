@@ -204,8 +204,23 @@ recoverForm.addEventListener("submit", async (e) => {
     // showOverlay(overlayRecoverResult);
 
     // sucesso: body.password contém a senha
-    const senha = body.password || "";
+    // const senha = body.password || "";
+    // hideOverlay(overlayRecover);
+    // === Modificação em js/auth.js (no handler recoverForm.addEventListener)
+    if (!res.ok) {
+      msgEl.style.color = "red";
+      msgEl.textContent = body.error || `Erro ${res.status}`;
+      console.error("Recuperação falhou:", body);
+      return;
+    }
+
+    // sucesso: não mostrar senha
     hideOverlay(overlayRecover);
+    document.getElementById("recResultUser").textContent = username || "";
+    document.getElementById("recResultPassword").value = ""; // limpar
+    document.getElementById("recResultNote").textContent =
+      "Se houver uma conta com esses dados, um link de recuperação foi enviado para o e-mail cadastrado (se configurado).";
+    showOverlay(overlayRecoverResult);
 
     // preenche e mostra o overlay de resultado
     document.getElementById("recResultUser").textContent = username;
@@ -241,7 +256,6 @@ document.getElementById("recResultOk").addEventListener("click", () => {
   const resultInput = document.getElementById("recResultPassword");
   if (resultInput) resultInput.value = "";
 });
-
 
 // SVGs usados no botão
 const svgEyeOpen = `
