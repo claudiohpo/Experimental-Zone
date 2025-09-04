@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Em Manutenção</title>
+  <style>
+    :root {
+      --card: #ffffff;
+      --accent: #2b7cff;
+      --muted: #666666;
+      --back: #ff9800;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f5f5f5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      box-sizing: border-box;
+    }
+
+    .maintenance-card {
+      background: var(--card);
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+      text-align: center;
+      max-width: 420px;
+      width: 90%;
+    }
+
+    .maintenance-card img {
+      max-width: 100%;
+      height: auto;
+      margin-bottom: 20px;
+    }
+
+    .maintenance-card h1 {
+      color: var(--accent);
+      font-size: 24px;
+      margin-bottom: 12px;
+    }
+
+    .maintenance-card p {
+      color: var(--muted);
+      font-size: 16px;
+      margin: 0;
+    }
+
+    @media (max-width: 480px) {
+      .maintenance-card {
+        padding: 20px 16px;
+      }
+
+      .maintenance-card h1 {
+        font-size: 20px;
+      }
+
+      .maintenance-card p {
+        font-size: 15px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="maintenance-card">
+    <img src="https://via.placeholder.com/300x180?text=Manuten%C3%A7%C3%A3o" alt="Imagem de manutenção" />
+    <h1>Sistema em manutenção</h1>
+    <p>Voltaremos em breve!</p>
+  </div>
+</body>
+</html>

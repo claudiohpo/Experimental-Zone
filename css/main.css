@@ -1,0 +1,228 @@
+:root {
+    --bg: #f7f8fb;
+    --card: #fff;
+    --accent: #1f6feb;
+    --muted: #666;
+}
+
+* {
+    box-sizing: border-box;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+}
+
+/* layout geral — centralizado horizontalmente */
+html, body {
+    height: 100%;
+}
+
+body {
+    margin: 0;
+    background: var(--bg);
+    color: #111;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column; /* empilha main + footer verticalmente */
+    align-items: center;    /* centraliza horizontalmente os filhos do body */
+    padding: 16px;
+}
+
+/* Container principal */
+.container {
+    width: 100%;
+    max-width: 720px;
+    background: var(--card);
+    border-radius: 12px;
+    padding: 18px;
+    box-shadow: 0 6px 20px rgba(20, 30, 50, 0.08);
+
+    margin: 16px 0;
+    flex: 0 0 auto; /* não estica verticalmente */
+}
+
+/* Tipografia e form */
+h1 {
+    margin: 0 0 14px 0;
+    font-size: 20px;
+    text-align: center;
+}
+
+form label {
+    display: block;
+    margin-bottom: 12px;
+    font-size: 13px;
+}
+
+input[type="text"],
+input[type="date"],
+input[type="number"],
+textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #e3e6ee;
+    border-radius: 8px;
+    font-size: 14px;
+}
+
+.row {
+    display: flex;
+    gap: 12px;
+}
+
+.row label {
+    flex: 1;
+}
+
+.actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-top: 6px;
+    justify-content: center;
+}
+
+button {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    padding: 10px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+button#downloadCsv {
+    background: #333;
+}
+
+.msg {
+    margin-top: 10px;
+    color: green;
+    font-weight: 600;
+}
+
+@media(max-width:520px) {
+    .row {
+        flex-direction: column;
+    }
+}
+
+/* Rodapé */
+footer {
+    margin-top: auto;
+    width: 100%;
+    text-align: center;
+    padding: 12px;
+    color: var(--muted);
+    font-size: 14px;
+    border-top: 1px solid #e3e6ee;
+
+    display: flex;
+    justify-content: center;
+}
+
+footer .footer-inner {
+    width: 100%;
+    max-width: 720px;
+    box-sizing: border-box;
+}
+
+/* links do footer */
+footer a {
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+footer a:hover {
+    text-decoration: underline;
+}
+
+/* mobile */
+@media (max-width: 520px) {
+    body {
+        padding: 12px;
+    }
+
+    #user-footer {
+    text-align: right;   /* no mobile, deixa alinhado à esquerda */
+    margin-top: 8px;
+    }
+
+    .actions {
+    display: flex;
+    justify-content: center;   /* centraliza todos os botões */
+    flex-wrap: nowrap;           
+    gap: 10px;                 /* espaço entre os botões */
+    }
+
+    .actions button {
+        white-space: nowrap;       /* evita que o texto quebre */
+        flex: 1 1 120px;           /* largura mínima de 120px, cresce se houver espaço */
+        max-width: 150px;          /* opcional: limita largura máxima */
+        height: 40px;              /* garante altura uniforme */
+        display: flex;             /* centraliza o texto vertical e horizontalmente */
+        align-items: center;
+        justify-content: center;
+    }
+
+
+    .container {
+        margin: 12px 0 6px;
+        padding: 14px;
+    }
+
+    footer {
+        margin-top: 6px;
+        padding: 10px;
+        font-size: 12px;
+    }
+}
+
+/* Seletores específicos para evitar sobrescritas por outros CSS */
+body > .container,
+html body > .container {
+  width: 100%;
+  max-width: 720px;
+  box-sizing: border-box;
+  background: var(--card);
+  border-radius: 12px;
+  padding: 18px;
+  box-shadow: 0 6px 20px rgba(20, 30, 50, 0.08);
+  margin: 16px 0;
+  position: relative;
+  left: auto;
+  right: auto;
+  float: none !important;
+}
+
+/* Garante que estilos inline não atrapalhem */
+body > .container[style] {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+/* Garante o wrapper do footer com a mesma largura do container */
+footer {
+  display: flex;
+  justify-content: center;
+}
+footer .footer-inner {
+  width: 100%;
+  max-width: 720px;
+}
+
+/* Pequenas tweaks mobile  */
+@media (max-width: 520px) {
+  body > .container { margin: 12px 0; padding: 14px; }
+  footer .footer-inner { padding: 0 6px; }
+}
+
+#user-footer {
+  position: absolute;      /*fixa dentro do container*/
+  margin-top: 12px;
+  bottom: 10px;            /* 10px do fundo */
+  right: 15px;             /* canto direito */
+  font-style: italic;      /* itálico */
+  text-align: right;
+  font-size: 0.9em;        /* menor que texto normal */
+  color: #555;             /* cinza discreto */
+}

@@ -1,0 +1,366 @@
+:root {
+    --card: #ffffff;
+    --accent: #2b7cff;
+    --muted: #666666;
+    --back: #ff9800;
+}
+
+.auth-card {
+    max-width: 420px;
+    margin: 20px auto;
+    padding: 18px;
+    border-radius: 10px;
+    background: var(--card);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+}
+
+.lbl {
+    display: block;
+    margin: 10px 0 6px;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.inp {
+    width: 100%;
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: 1px solid #ddd;
+    font-size: 14px;
+    box-sizing: border-box;
+}
+
+.row {
+    display: flex;
+    margin-top: 12px;
+    align-items: center;
+}
+
+.btn {
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 0;
+    cursor: pointer;
+    background: #eee;
+}
+
+.btn.primary {
+    background: var(--accent);
+    color: white;
+}
+
+.auth-footer {
+    margin-top: 12px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 14px;
+}
+
+.link-like {
+    color: var(--accent);
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+.overlay {
+    position: fixed;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.35);
+    z-index: 900;
+}
+
+.overlay.show {
+    display: flex;
+}
+
+.popup {
+    width: 420px;
+    max-width: 94%;
+    background: var(--card);
+    padding: 16px;
+    border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+}
+
+.actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-top: 6px;
+    justify-content: center;
+}
+
+.msg {
+    margin-top: 6px;
+    font-size: 13px;
+    color: #333;
+}
+
+.btn.cancel {
+    background-color: #ff9800;
+    color: #fff;
+}
+
+/* Password toggle styles */
+.password-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.password-wrapper .inp {
+    padding-right: 44px;
+    /* espaço para o botão */
+}
+
+.password-toggle {
+    position: absolute;
+    right: 8px;
+    background: transparent;
+    border: none;
+    height: 28px;
+    width: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    outline: none;
+    color: #444;
+}
+
+.password-toggle svg {
+    width: 18px;
+    height: 18px;
+}
+
+.password-toggle:active,
+.password-toggle:focus {
+    transform: translateY(0.5px);
+}
+
+/* Estilo visual para o campo de senha mostrado no modal de recuperação */
+.rec-result-input {
+    width: 100%;
+    padding: 12px;
+    border-radius: 6px;
+    border: 1px solid #e9e9e9;
+    background: #f5f5f5;
+    box-sizing: border-box;
+    text-align: center;
+    /* centraliza o texto da senha */
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", monospace;
+    font-size: 15px;
+    word-break: break-all;
+    -webkit-user-select: text;
+    /* permite copiar a senha mesmo sendo readonly */
+    user-select: text;
+    caret-color: transparent;
+    /* remove caret visual em inputs readonly */
+}
+
+/* Ajuste para manter o botão do olho posicionado corretamente no wrapper */
+.overlay .popup .rec-result-wrapper .password-wrapper {
+    position: relative;
+}
+
+/* Centraliza título e parágrafo do modal "Senha recuperada" em todas as telas */
+#overlayRecoverResult .popup h2 {
+    text-align: center;
+    margin-top: 0.25rem;
+    margin-bottom: 0.5rem;
+}
+
+#overlayRecoverResult .popup p {
+    text-align: center;
+    margin: 0;
+}
+
+/* Centraliza o título do modal "Recuperar senha" em todas as telas */
+#overlayRecover .popup h2 {
+    text-align: center;
+    margin-top: 0.25rem;
+    margin-bottom: 0.5rem;
+}
+
+/* Centraliza todos os títulos dos modais */
+.overlay .popup h2 {
+    text-align: center;
+    margin-top: 0.25rem;
+    margin-bottom: 0.5rem;
+}
+
+
+
+
+/* MOBILE */
+@media (max-width: 520px) {
+    .auth-card {
+        width: 94%;
+        margin: 12px auto;
+        padding: 14px;
+    }
+
+    .popup {
+        width: 94%;
+        padding: 14px;
+    }
+
+    .row {
+        flex-direction: column;
+        /* inputs e botões em coluna */
+        align-items: stretch;
+        gap: 8px;
+        margin-top: 10px;
+    }
+
+    .inp {
+        font-size: 13px;
+        padding: 8px;
+    }
+
+    .btn {
+        width: 100%;
+        /* botões ocupam toda largura disponível */
+        text-align: center;
+        padding: 10px 0;
+        font-size: 14px;
+        flex: none;
+        /* impede crescimento desigual */
+    }
+
+    .actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        /* 2 botões por linha */
+        gap: 8px;
+        width: 100%;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .msg {
+        font-size: 12px;
+    }
+
+    .auth-footer {
+        font-size: 13px;
+    }
+
+    .password-wrapper .inp {
+        padding-right: 40px;
+        /* mantém espaço para botão de toggle */
+    }
+
+    .overlay#overlayRecover .popup .actions {
+        display: flex;
+        flex-direction: row;
+        justify-content: center;
+        /* centraliza horizontalmente */
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+        padding-top: 6px;
+        flex-wrap: nowrap;
+    }
+
+    .overlay#overlayRecover .popup .actions .btn {
+        flex: 0 1 44%;
+        /* cada botão ~44% da largura */
+        max-width: 180px;
+        min-width: 120px;
+    }
+
+    .rec-result-input {
+        font-size: 14px;
+        padding: 10px;
+    }
+
+    /* Centraliza título e parágrafo apenas no modal "Senha recuperada" */
+    #overlayRecoverResult .popup h2 {
+        text-align: center;
+        margin-top: 0.25rem;
+        margin-bottom: 0.5rem;
+    }
+
+    #overlayRecoverResult .popup p {
+        text-align: center;
+        margin: 0;
+        /* evita margens extras */
+    }
+
+    /* sobrescreve o comportamento grid para o modal que mostra a senha */
+    #overlayRecoverResult .popup .actions {
+        display: flex;
+        /* usa flex para centrar facilmente */
+        justify-content: center;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+        padding-top: 6px;
+    }
+
+    /* controla a largura do botão OK dentro desse modal */
+    #overlayRecoverResult .popup .actions .btn {
+        flex: 0 1 auto;
+        min-width: 120px;
+        max-width: 240px;
+        width: auto;
+    }
+
+    .auth-card {
+        margin: 0 auto;
+    }
+
+
+    /* fixa o footer na base da viewport */
+    footer {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 999;
+        background: var(--bg, #f7f8fb);
+        /* opcional: usar cor de fundo similar ao body */
+        border-top: 1px solid #e3e6ee;
+        padding: 10px 12px;
+        box-sizing: border-box;
+    }
+
+    /* mantém o conteúdo do footer alinhado e com a largura desejada */
+    footer .footer-inner {
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 0 6px;
+    }
+
+    /* evita que o conteúdo principal (card) seja coberto pelo footer */
+    /* o valor 72px é uma boa base — aumente ou diminua conforme a altura do footer */
+    body {
+        padding-bottom: calc(72px + env(safe-area-inset-bottom));
+        /* compatível com iPhone notch */
+    }
+}
+
+/* --- CENTERED LOGIN CARD  --- */
+.auth-card-wrapper {
+    /* permite que o wrapper ocupe o espaço vertical entre topo e footer */
+    flex: 1 0 auto;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    /* centra verticalmente o card */
+    justify-content: center;
+    /* centra horizontalmente o card */
+    padding: 20px 12px;
+    /* espaço nas laterais / top/bottom */
+    box-sizing: border-box;
+}
+
+/* evita margem vertical que empurra o card para cima */
+.auth-card {
+    margin: 0 auto;
+    /* horizontal: centraliza; vertical: sem empurrões */
+}

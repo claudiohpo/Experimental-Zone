@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Login - Registro de KM Rodados</title>
+  <link rel="stylesheet" href="css/main.css" />
+  <link rel="stylesheet" href="css/auth.css" />
+
+  <link rel="icon" type="image/png" href="/images/favicon-96x96.png" sizes="96x96" />
+  <link rel="icon" type="image/svg+xml" href="/images/favicon.svg" />
+  <link rel="shortcut icon" href="/images/favicon.ico" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png" />
+  <link rel="manifest" href="/images/site.webmanifest" />
+</head>
+
+<body>
+  <!-- card do login -->
+  <div class="auth-card-wrapper">
+    <div class="card auth-card">
+      <h1>Sistema de Controle de KM</h1>
+      <form id="loginForm" autocomplete="off">
+        <label class="lbl">Usuário
+          <input class="inp" type="text" id="loginUsername" required placeholder="Seu usuário" />
+        </label>
+
+        <label class="lbl" for="loginPassword">Senha</label>
+        <div class="password-wrapper">
+          <input class="inp" type="password" id="loginPassword" required placeholder="Sua senha"
+            data-password-toggle="true" />
+          <button type="button" class="password-toggle" aria-label="Mostrar senha" aria-pressed="false"></button>
+        </div>
+
+
+        <div class="row" style="gap:8px;">
+          <button id="btnLogin" type="submit" class="btn primary" style="flex:1">Entrar</button>
+        </div>
+
+        <div class="auth-footer">
+          <span class="link-like" id="openRegister">Criar conta</span> ·
+          <span class="link-like" id="openRecover">Recuperar senha</span>
+        </div>
+
+        <p id="loginMsg" class="msg" style="margin-top:10px"></p>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Cadastro  -->
+  <div class="overlay" id="overlayRegister" aria-hidden="true">
+    <div class="popup" role="dialog" aria-modal="true">
+      <h2>Criar conta</h2>
+      <form id="registerForm">
+        <label class="lbl">Usuário
+          <input class="inp" type="text" id="regUsername" placeholder="Nome de usuário" required />
+        </label>
+        <label class="lbl">Email
+          <input class="inp" type="email" id="regEmail" placeholder="Seu email" required />
+        </label>
+
+        <label class="lbl" for="regPassword">Senha</label>
+        <div class="password-wrapper">
+          <input class="inp" type="password" id="regPassword" placeholder="Sua senha" required
+            data-password-toggle="true" />
+          <button type="button" class="password-toggle" aria-label="Mostrar senha" aria-pressed="false"></button>
+        </div>
+
+        <label class="lbl" for="regPassword2">Confirmar senha</label>
+        <div class="password-wrapper">
+          <input class="inp" type="password" id="regPassword2" placeholder="Confirme sua senha" required
+            data-password-toggle="true" />
+          <button type="button" class="password-toggle" aria-label="Mostrar senha" aria-pressed="false"></button>
+        </div>
+
+
+        <div class="actions">
+          <button type="button" id="regCancel" class="btn cancel">Cancelar</button>
+
+          <button type="submit" id="regSubmit" class="btn primary">Cadastrar</button>
+        </div>
+
+        <p id="regMsg" class="msg"></p>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Recuperar senha (solicitação) -->
+  <div class="overlay" id="overlayRecover" aria-hidden="true">
+    <div class="popup" role="dialog" aria-modal="true">
+      <h2>Recuperar senha</h2>
+      <form id="recoverForm">
+        <label class="lbl">Usuário
+          <input class="inp" type="text" id="recUsername" placeholder="Nome de usuário" required />
+        </label>
+        <label class="lbl">Email cadastrado
+          <input class="inp" type="email" id="recEmail" placeholder="Email usado no cadastro" required />
+        </label>
+
+        <div class="actions">
+          <button type="button" id="recCancel" class="btn cancel">Cancelar</button>
+          <button type="submit" id="recSubmit" class="btn primary">Recuperar</button>
+        </div>
+
+        <p id="recMsg" class="msg"></p>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Recuperação - resultado (mostra a senha) -->
+  <div class="overlay" id="overlayRecoverResult" aria-hidden="true">
+    <div class="popup" role="dialog" aria-modal="true">
+      <h2>Senha recuperada</h2>
+      <p style="text-align:center;">Senha do usuário <strong id="recResultUser"></strong>:</p>
+
+      <!-- container do input password para ter botão de olho -->
+      <div class="rec-result-wrapper" style="display:flex; justify-content:center; margin-top:8px;">
+        <div class="password-wrapper" style="width: 90%; max-width: 420px;">
+          <input class="inp rec-result-input" id="recResultPassword" type="password" readonly
+            aria-label="Senha recuperada" data-password-toggle="true" />
+        </div>
+      </div>
+
+      <div class="actions" style="justify-content:center; margin-top:12px;">
+        <button type="button" id="recResultOk" class="btn primary">OK</button>
+      </div>
+    </div>
+  </div>
+
+
+  <footer>
+    <div class="footer-inner">
+      © 2025 - Desenvolvido por <a href="https://github.com/claudiohpo" target="_blank" rel="noopener">Cláudio
+        Oliveira</a>
+    </div>
+  </footer>
+
+  <script src="js/auth.js"></script>
+</body>
+
+</html>

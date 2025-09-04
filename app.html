@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Registro de KM Rodados</title>
+  <link rel="stylesheet" href="css/main.css" />
+  <link rel="icon" type="image/png" href="/images/favicon-96x96.png" sizes="96x96" />
+  <link rel="icon" type="image/svg+xml" href="/images/favicon.svg" />
+  <link rel="shortcut icon" href="/images/favicon.ico" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png" />
+  <link rel="manifest" href="/images/site.webmanifest" />
+</head>
+
+<body>
+  <!-- Guard: exige sessão (sessionStorage). Se não existir, redireciona para index.html -->
+  <script>
+    (function () {
+      try {
+        const username = sessionStorage.getItem('km_username');
+        if (!username) {
+          // Remove qualquer rastro em localStorage (evita "último usuário" reaparecer)
+          try { localStorage.removeItem('km_username'); } catch (e) { }
+          const redirect = encodeURIComponent(location.pathname + location.search + location.hash);
+          window.location.replace('/index.html?redirect=' + redirect);
+        }
+      } catch (e) {
+        // em caso de erro, redireciona para login também
+        window.location.replace('/index.html?redirect=' + encodeURIComponent(location.pathname));
+      }
+    })();
+  </script>
+
+  <main class="container">
+    <h1>Registro de KM Rodados</h1>
+
+    <form id="kmForm">
+      <label>
+        Data *
+        <input type="date" id="data" name="data" required />
+      </label>
+
+      <label>
+        Chamado
+        <input type="text" id="chamado" name="chamado" placeholder="Informe o número do chamado" />
+      </label>
+
+      <label>
+        Local *
+        <input type="text" id="local" name="local" required placeholder="Ex.: São Paulo - Cliente X" />
+      </label>
+
+      <div class="row">
+        <label>
+          KM saída *
+          <input type="number" id="kmSaida" name="kmSaida" placeholder="0" required min="0" step="1" />
+        </label>
+        <label>
+          KM chegada
+          <input type="number" id="kmChegada" name="kmChegada" placeholder="0" step="1" />
+        </label>
+      </div>
+
+      <label>
+        Observações
+        <textarea id="observacoes" name="observacoes" rows="3" placeholder="Opcional"></textarea>
+      </label>
+
+      <div class="actions">
+        <button type="button" id="btnSalvar">Salvar</button>
+        <button type="button" id="btnManutencao">Relatório / Manutenção</button>
+        <button type="button" id="btnSair">Sair</button>
+      </div>
+
+      <p id="msg" class="msg"></p>
+    </form>
+    <div id="user-footer"></div>
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+      © 2025 - Desenvolvido por <a href="https://github.com/claudiohpo" target="_blank" rel="noopener">Cláudio
+        Oliveira</a>
+    </div>
+  </footer>
+
+  <script src="js/main.js"></script>
+</body>
+
+</html>
