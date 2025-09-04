@@ -11,6 +11,9 @@ const nodemailer = require("nodemailer");
 
 const BCRYPT_ROUNDS = parseInt(process.env.BCRYPT_ROUNDS || "12", 10);
 
+const MAX_LOGIN_ATTEMPTS = parseInt(process.env.MAX_LOGIN_ATTEMPTS || "5", 10);
+const LOCK_MINUTES = parseInt(process.env.LOCK_MINUTES || "15", 10);
+
 // opcional: configura transporter caso queira envio de e-mail para reset
 let mailTransporter = null;
 if (process.env.SMTP_HOST) {
@@ -349,20 +352,59 @@ module.exports = async (req, res) => {
 
         console.log("[login] resultado compare:", match);
 
+        // if (!match) {
+        //   // incrementar tentativas para lockout
+        //   const attempts = (user.failedLoginAttempts || 0) + 1;
+        //   const update = { failedLoginAttempts: attempts };
+        //   if (attempts >= 5) {
+        //     update.lockedUntil = Date.now() + 15 * 60 * 1000; // 15 min
+        //     update.failedLoginAttempts = 0;
+        //   }
+        //   await users.updateOne({ _id: user._id }, { $set: update });
+        //   res.statusCode = 401;
+        //   return res.end(
+        //     JSON.stringify({ error: "Usuário ou senha inválidos." })
+        //   );
+        // }
         if (!match) {
-          // incrementar tentativas para lockout
-          const attempts = (user.failedLoginAttempts || 0) + 1;
-          const update = { failedLoginAttempts: attempts };
-          if (attempts >= 5) {
-            update.lockedUntil = Date.now() + 15 * 60 * 1000; // 15 min
-            update.failedLoginAttempts = 0;
-          }
-          await users.updateOne({ _id: user._id }, { $set: update });
-          res.statusCode = 401;
-          return res.end(
-            JSON.stringify({ error: "Usuário ou senha inválidos." })
-          );
-        }
+  try {
+    // incremento atômico e retorna documento atualizado
+    const incRes = await users.findOneAndUpdate(
+      { _id: user._id },
+      { $inc: { failedLoginAttempts: 1 } },
+      { returnDocument: "after" }
+    );
+
+    const attempts = (incRes.value && incRes.value.failedLoginAttempts) || 0;
+    console.log("[login] tentativas após increment:", attempts);
+
+    if (attempts >= MAX_LOGIN_ATTEMPTS) {
+      const lockUntil = Date.now() + LOCK_MINUTES * 60 * 1000;
+      // define lockedUntil; opcionalmente mantenha o contador (não zera)
+      await users.updateOne(
+        { _id: user._id },
+        { $set: { lockedUntil: lockUntil /*, failedLoginAttempts: attempts */ } }
+      );
+      console.log("[login] usuário bloqueado até:", new Date(lockUntil).toISOString());
+      res.statusCode = 429;
+      return res.end(
+        JSON.stringify({
+          error: "Conta temporariamente bloqueada. Tente novamente mais tarde.",
+          lockedUntil,
+        })
+      );
+    }
+
+    // ainda não atingiu limite, retorno padrão de credenciais inválidas
+    res.statusCode = 401;
+    return res.end(JSON.stringify({ error: "Usuário ou senha inválidos." }));
+  } catch (errInc) {
+    console.error("[login] erro ao incrementar tentativas:", errInc && errInc.stack ? errInc.stack : errInc);
+    // fallback: se o incremento falhar, apenas trate como falha de login
+    res.statusCode = 401;
+    return res.end(JSON.stringify({ error: "Usuário ou senha inválidos." }));
+  }
+}
 
         // login ok: reset de tentativas
         await users.updateOne(
