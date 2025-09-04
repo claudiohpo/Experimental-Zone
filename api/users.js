@@ -292,165 +292,151 @@ module.exports = async (req, res) => {
     //apagar depois o console
     console.log("Parsed body:", body);
 
+    // ===================== BLOCO DE LOGIN INSTRUMENTADO (substituir o antigo) =====================
     // ===================== BLOCO DE LOGIN (ATUALIZADO: bloqueio + liberação automática) =====================
-if (action === "login") {
-  console.log("[action=login] entrada do bloco login");
-  try {
-    const { username, password } = body || {};
-    console.log("[login] dados recebidos (username exists?):", {
-      username: !!username,
-      passwordProvided: !!password,
-    });
-
-    if (!username || !password) {
-      res.statusCode = 400;
-      console.log("[login] dados incompletos");
-      return res.end(JSON.stringify({ error: "Usuário e senha são obrigatórios." }));
-    }
-
-    const usernameNormalized = String(username).trim().toLowerCase();
-    console.log("[login] usernameNormalized:", usernameNormalized);
-
-    // buscar usuário
-    let user = await users.findOne({ username: usernameNormalized });
-    console.log("[login] user encontrado?", !!user);
-
-    if (!user) {
-      // não revelar existência do usuário
-      res.statusCode = 401;
-      return res.end(JSON.stringify({ error: "Usuário ou senha inválidos." }));
-    }
-
-    // --- auto-unlock: se bloqueado e o tempo já passou, libere e zere contador ---
-    if (user.lockedUntil && user.lockedUntil <= Date.now()) {
-      await users.updateOne({ _id: user._id }, { $set: { failedLoginAttempts: 0, lockedUntil: null } });
-      // atualiza objeto local para refletir
-      user.failedLoginAttempts = 0;
-      user.lockedUntil = null;
-      console.log("[login] conta desbloqueada automaticamente (expiration passed).");
-    }
-
-    // se ainda estiver bloqueado, recuse
-    if (user.lockedUntil && user.lockedUntil > Date.now()) {
-      console.log("[login] tentativa em conta bloqueada até:", new Date(user.lockedUntil).toISOString());
-      res.statusCode = 429;
-      return res.end(JSON.stringify({
-        error: "Conta temporariamente bloqueada. Tente novamente mais tarde.",
-        lockedUntil: user.lockedUntil
-      }));
-    }
-
-    // checa se existe passwordHash no usuário
-    if (!user.passwordHash) {
-      console.error("[login] usuário sem passwordHash no DB:", { userId: user._id });
-      res.statusCode = 500;
-      return res.end(JSON.stringify({ error: "Erro interno (hash ausente)." }));
-    }
-
-    // compara senha (bcryptjs - síncrono)
-    let match = false;
-    try {
-      match = bcrypt.compareSync(password, user.passwordHash);
-    } catch (errCompare) {
-      console.error("[login] erro ao comparar hash:", errCompare && errCompare.stack ? errCompare.stack : errCompare);
-      res.statusCode = 500;
-      return res.end(JSON.stringify({ error: "Erro interno ao validar senha." }));
-    }
-
-    console.log("[login] resultado compare:", match);
-
-    if (!match) {
-      // incremento atômico e retorna documento atualizado
+    if (action === "login") {
+      console.log("[action=login] entrada do bloco login");
       try {
-        const incRes = await users.findOneAndUpdate(
-          { _id: user._id },
-          { $inc: { failedLoginAttempts: 1 } },
-          { returnDocument: "after" }
-        );
+        const { username, password } = body || {};
+        console.log("[login] dados recebidos (username exists?):", {
+          username: !!username,
+          passwordProvided: !!password,
+        });
 
-        const attempts = (incRes.value && incRes.value.failedLoginAttempts) || 0;
-        console.log("[login] tentativas após increment:", attempts);
-
-        if (attempts >= MAX_LOGIN_ATTEMPTS) {
-          const lockUntil = Date.now() + LOCK_MINUTES * 60 * 1000; // LOCK_MINUTES em minutos
-          // define lockedUntil (não zera o contador — mantém histórico)
-          await users.updateOne(
-            { _id: user._id },
-            { $set: { lockedUntil: lockUntil } }
+        if (!username || !password) {
+          res.statusCode = 400;
+          console.log("[login] dados incompletos");
+          return res.end(
+            JSON.stringify({ error: "Usuário e senha são obrigatórios." })
           );
-          console.log("[login] usuário bloqueado até:", new Date(lockUntil).toISOString());
-          res.statusCode = 429;
-          return res.end(JSON.stringify({
-            error: "Conta temporariamente bloqueada. Tente novamente mais tarde.",
-            lockedUntil: lockUntil
-          }));
         }
 
-        // ainda não atingiu limite, retorno padrão de credenciais inválidas
-        res.statusCode = 401;
-        return res.end(JSON.stringify({ error: "Usuário ou senha inválidos." }));
-      } catch (errInc) {
-        console.error("[login] erro ao incrementar tentativas:", errInc && errInc.stack ? errInc.stack : errInc);
-        // fallback: se o incremento falhar, apenas trate como falha de login
-        res.statusCode = 401;
-        return res.end(JSON.stringify({ error: "Usuário ou senha inválidos." }));
-      }
-    }
+        const usernameNormalized = String(username).trim().toLowerCase();
+        console.log("[login] usernameNormalized:", usernameNormalized);
 
-    // senha correta -> reset de tentativas e desbloqueia se necessário
-    await users.updateOne(
-      { _id: user._id },
-      { $set: { failedLoginAttempts: 0, lockedUntil: null } }
-    );
+        // buscar usuário
+        let user = await users.findOne({ username: usernameNormalized });
+        console.log("[login] user encontrado?", !!user);
 
-    // Retorne aqui o que seu app precisa (token/session). Por enquanto:
-    res.statusCode = 200;
-    console.log("[login] login bem sucedido para:", usernameNormalized);
-    return res.end(JSON.stringify({ message: "OK" }));
-  } catch (err) {
-    console.error("[login] ERRO NÃO TRATADO:", err && err.stack ? err.stack : err);
-    res.statusCode = 500;
-    return res.end(JSON.stringify({
-      error: "Erro interno no login",
-      detail: process.env.DEBUG ? (err && err.stack) : undefined
-    }));
-  }
-}
-// ================================================================================================
+        if (!user) {
+          // não revelar existência do usuário
+          res.statusCode = 401;
+          return res.end(
+            JSON.stringify({ error: "Usuário ou senha inválidos." })
+          );
+        }
 
+        // --- auto-unlock: se bloqueado e o tempo já passou, libere e zere contador ---
+        if (user.lockedUntil && user.lockedUntil <= Date.now()) {
+          await users.updateOne(
+            { _id: user._id },
+            { $set: { failedLoginAttempts: 0, lockedUntil: null } }
+          );
+          // atualiza objeto local para refletir
+          user.failedLoginAttempts = 0;
+          user.lockedUntil = null;
+          console.log(
+            "[login] conta desbloqueada automaticamente (expiration passed)."
+          );
+        }
 
-    const attempts = (incRes.value && incRes.value.failedLoginAttempts) || 0;
-    console.log("[login] tentativas após increment:", attempts);
+        // se ainda estiver bloqueado, recuse
+        if (user.lockedUntil && user.lockedUntil > Date.now()) {
+          console.log(
+            "[login] tentativa em conta bloqueada até:",
+            new Date(user.lockedUntil).toISOString()
+          );
+          res.statusCode = 429;
+          return res.end(
+            JSON.stringify({
+              error:
+                "Conta temporariamente bloqueada. Tente novamente mais tarde.",
+              lockedUntil: user.lockedUntil,
+            })
+          );
+        }
 
-    if (attempts >= MAX_LOGIN_ATTEMPTS) {
-      const lockUntil = Date.now() + LOCK_MINUTES * 60 * 1000;
-      // define lockedUntil; opcionalmente mantenha o contador (não zera)
-      await users.updateOne(
-        { _id: user._id },
-        { $set: { lockedUntil: lockUntil /*, failedLoginAttempts: attempts */ } }
-      );
-      console.log("[login] usuário bloqueado até:", new Date(lockUntil).toISOString());
-      res.statusCode = 429;
-      return res.end(
-        JSON.stringify({
-          error: "Conta temporariamente bloqueada. Tente novamente mais tarde.",
-          lockedUntil,
-        })
-      );
-    }
+        // checa se existe passwordHash no usuário
+        if (!user.passwordHash) {
+          console.error("[login] usuário sem passwordHash no DB:", {
+            userId: user._id,
+          });
+          res.statusCode = 500;
+          return res.end(
+            JSON.stringify({ error: "Erro interno (hash ausente)." })
+          );
+        }
 
-    // ainda não atingiu limite, retorno padrão de credenciais inválidas
-    res.statusCode = 401;
-    return res.end(JSON.stringify({ error: "Usuário ou senha inválidos." }));
-  } catch (errInc) {
-    console.error("[login] erro ao incrementar tentativas:", errInc && errInc.stack ? errInc.stack : errInc);
-    // fallback: se o incremento falhar, apenas trate como falha de login
-    res.statusCode = 401;
-    return res.end(JSON.stringify({ error: "Usuário ou senha inválidos." }));
-  }
-}
+        // compara senha (bcryptjs - síncrono)
+        let match = false;
+        try {
+          match = bcrypt.compareSync(password, user.passwordHash);
+        } catch (errCompare) {
+          console.error(
+            "[login] erro ao comparar hash:",
+            errCompare && errCompare.stack ? errCompare.stack : errCompare
+          );
+          res.statusCode = 500;
+          return res.end(
+            JSON.stringify({ error: "Erro interno ao validar senha." })
+          );
+        }
 
-        // login ok: reset de tentativas
+        console.log("[login] resultado compare:", match);
+
+        if (!match) {
+          // incremento atômico e retorna documento atualizado
+          try {
+            const incRes = await users.findOneAndUpdate(
+              { _id: user._id },
+              { $inc: { failedLoginAttempts: 1 } },
+              { returnDocument: "after" }
+            );
+
+            const attempts =
+              (incRes.value && incRes.value.failedLoginAttempts) || 0;
+            console.log("[login] tentativas após increment:", attempts);
+
+            if (attempts >= MAX_LOGIN_ATTEMPTS) {
+              const lockUntil = Date.now() + LOCK_MINUTES * 60 * 1000; // LOCK_MINUTES em minutos
+              // define lockedUntil (não zera o contador — mantém histórico)
+              await users.updateOne(
+                { _id: user._id },
+                { $set: { lockedUntil: lockUntil } }
+              );
+              console.log(
+                "[login] usuário bloqueado até:",
+                new Date(lockUntil).toISOString()
+              );
+              res.statusCode = 429;
+              return res.end(
+                JSON.stringify({
+                  error:
+                    "Conta temporariamente bloqueada. Tente novamente mais tarde.",
+                  lockedUntil: lockUntil,
+                })
+              );
+            }
+
+            // ainda não atingiu limite, retorno padrão de credenciais inválidas
+            res.statusCode = 401;
+            return res.end(
+              JSON.stringify({ error: "Usuário ou senha inválidos." })
+            );
+          } catch (errInc) {
+            console.error(
+              "[login] erro ao incrementar tentativas:",
+              errInc && errInc.stack ? errInc.stack : errInc
+            );
+            // fallback: se o incremento falhar, apenas trate como falha de login
+            res.statusCode = 401;
+            return res.end(
+              JSON.stringify({ error: "Usuário ou senha inválidos." })
+            );
+          }
+        }
+
+        // senha correta -> reset de tentativas e desbloqueia se necessário
         await users.updateOne(
           { _id: user._id },
           { $set: { failedLoginAttempts: 0, lockedUntil: null } }
@@ -474,6 +460,7 @@ if (action === "login") {
         );
       }
     }
+    // ================================================================================================
 
     // ========================================================================
 
