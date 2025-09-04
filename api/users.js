@@ -53,9 +53,11 @@ async function readRawBody(req) {
 module.exports = async (req, res) => {
   res.setHeader("Content-Type", "application/json; charset=utf-8");
 
-    // debug temporário - LOGS
-  console.log("--- /api/users called ---", { method: req.method, url: req.url });
-
+  // debug temporário - LOGS
+  console.log("--- /api/users called ---", {
+    method: req.method,
+    url: req.url,
+  });
 
   try {
     if (req.method !== "POST") {
@@ -250,7 +252,6 @@ module.exports = async (req, res) => {
       // hash da senha
       const passwordHash = bcrypt.hashSync(password, BCRYPT_ROUNDS);
 
-
       const newUser = {
         username: usernameNormalized,
         email: email.trim().toLowerCase(),
@@ -285,71 +286,109 @@ module.exports = async (req, res) => {
     //   return res.end(JSON.stringify({ message: "OK" }));
     // }
     // ===================== SUBSTITUIR bloco "login" =====================
-      //apagar depois o console
-      console.log("Parsed body:", body);
+    //apagar depois o console
+    console.log("Parsed body:", body);
 
+    // ===================== BLOCO DE LOGIN INSTRUMENTADO (substituir o antigo) =====================
     if (action === "login") {
-      //apagar depois o console
-        console.log("Login attempt:", { username });
+      console.log("[action=login] entrada do bloco login");
+      try {
+        const { username, password } = body || {};
+        console.log("[login] dados recebidos (username exists?):", {
+          username: !!username,
+          passwordProvided: !!password,
+        });
 
-      const { username, password } = body;
-      if (!username || !password) {
-        res.statusCode = 400;
-        return res.end(
-          JSON.stringify({ error: "Usuário e senha são obrigatórios." })
+        if (!username || !password) {
+          res.statusCode = 400;
+          console.log("[login] dados incompletos");
+          return res.end(
+            JSON.stringify({ error: "Usuário e senha são obrigatórios." })
+          );
+        }
+
+        const usernameNormalized = String(username).trim().toLowerCase();
+        console.log("[login] usernameNormalized:", usernameNormalized);
+
+        const user = await users.findOne({ username: usernameNormalized });
+        console.log("[login] user encontrado?", !!user);
+
+        if (!user) {
+          // não revelar existência do usuário
+          res.statusCode = 401;
+          return res.end(
+            JSON.stringify({ error: "Usuário ou senha inválidos." })
+          );
+        }
+
+        // checa se existe passwordHash no usuário
+        if (!user.passwordHash) {
+          console.error("[login] usuário sem passwordHash no DB:", {
+            userId: user._id,
+          });
+          res.statusCode = 500;
+          return res.end(
+            JSON.stringify({ error: "Erro interno (hash ausente)." })
+          );
+        }
+
+        // compara senha (bcryptjs - síncrono)
+        let match = false;
+        try {
+          match = bcrypt.compareSync(password, user.passwordHash);
+        } catch (errCompare) {
+          console.error(
+            "[login] erro ao comparar hash:",
+            errCompare && errCompare.stack ? errCompare.stack : errCompare
+          );
+          res.statusCode = 500;
+          return res.end(
+            JSON.stringify({ error: "Erro interno ao validar senha." })
+          );
+        }
+
+        console.log("[login] resultado compare:", match);
+
+        if (!match) {
+          // incrementar tentativas para lockout
+          const attempts = (user.failedLoginAttempts || 0) + 1;
+          const update = { failedLoginAttempts: attempts };
+          if (attempts >= 5) {
+            update.lockedUntil = Date.now() + 15 * 60 * 1000; // 15 min
+            update.failedLoginAttempts = 0;
+          }
+          await users.updateOne({ _id: user._id }, { $set: update });
+          res.statusCode = 401;
+          return res.end(
+            JSON.stringify({ error: "Usuário ou senha inválidos." })
+          );
+        }
+
+        // login ok: reset de tentativas
+        await users.updateOne(
+          { _id: user._id },
+          { $set: { failedLoginAttempts: 0, lockedUntil: null } }
         );
-      }
 
-      const usernameNormalized = username.trim().toLowerCase();
-      const user = await users.findOne({ username: usernameNormalized });
-
-      if (!user) {
-        // não revelar se usuário existe
-        res.statusCode = 401;
-        return res.end(
-          JSON.stringify({ error: "Usuário ou senha inválidos." })
+        // Retorne aqui o que seu app precisa (token/session). Por enquanto:
+        res.statusCode = 200;
+        console.log("[login] login bem sucedido para:", usernameNormalized);
+        return res.end(JSON.stringify({ message: "OK" }));
+      } catch (err) {
+        console.error(
+          "[login] ERRO NÃO TRATADO:",
+          err && err.stack ? err.stack : err
         );
-      }
-
-      // bloqueio simples: se lockedUntil no futuro, negar
-      if (user.lockedUntil && user.lockedUntil > Date.now()) {
-        res.statusCode = 429;
+        res.statusCode = 500;
         return res.end(
           JSON.stringify({
-            error: "Conta temporariamente bloqueada. Tente mais tarde.",
+            error: "Erro interno no login",
+            detail: process.env.DEBUG ? err && err.stack : undefined,
           })
         );
       }
-
-      const match = bcrypt.compareSync(password, user.passwordHash || "");
-
-
-      if (!match) {
-        // incrementar tentativas para lockout
-        const attempts = (user.failedLoginAttempts || 0) + 1;
-        const update = { failedLoginAttempts: attempts };
-        if (attempts >= 5) {
-          // exemplo: 5 tentativas -> bloqueia por 15 min
-          update.lockedUntil = Date.now() + 15 * 60 * 1000;
-          update.failedLoginAttempts = 0;
-        }
-        await users.updateOne({ _id: user._id }, { $set: update });
-        res.statusCode = 401;
-        return res.end(
-          JSON.stringify({ error: "Usuário ou senha inválidos." })
-        );
-      }
-
-      // login ok: reset de tentativas
-      await users.updateOne(
-        { _id: user._id },
-        { $set: { failedLoginAttempts: 0, lockedUntil: null } }
-      );
-
-      // Aqui retornar token/session conforme seu fluxo. Exemplo simples:
-      res.statusCode = 200;
-      return res.end(JSON.stringify({ message: "OK" }));
     }
+
     // ========================================================================
 
     // ===================== ADICIONAR bloco "reset" =====================
