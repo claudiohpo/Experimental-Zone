@@ -91,6 +91,73 @@ registerForm.addEventListener("submit", async (e) => {
 });
 
 // Função para login
+// loginForm.addEventListener("submit", async (e) => {
+//   e.preventDefault();
+//   const username = document.getElementById("loginUsername").value.trim();
+//   const password = document.getElementById("loginPassword").value;
+//   loginMsg.style.color = "#333";
+//   loginMsg.textContent = "Validando...";
+
+//   if (!username || !password) {
+//     loginMsg.style.color = "red";
+//     loginMsg.textContent = "Preencha usuário e senha.";
+//     return;
+//   }
+
+//   try {
+//     const res = await fetch("/api/users", {
+//       method: "POST",
+//       headers: {
+//         "Content-Type": "application/json",
+//         Accept: "application/json",
+//       },
+//       body: JSON.stringify({ action: "login", username, password }),
+//     });
+
+//     const body = await parseResponse(res);
+
+//     // após parseResponse(res) ter retornado body
+//     if (!res.ok) {
+//       msgEl.style.color = "red";
+//       msgEl.textContent = errorText(body, `Erro ${res.status}`);
+//       console.error("Recuperação falhou:", body);
+//       return;
+//     }
+
+//     hideOverlay(overlayRecover);
+//     document.getElementById("recResultUser").textContent = username || "";
+//     document.getElementById("recResultPassword").value = ""; // sempre vazio
+//     document.getElementById("recResultNote").textContent =
+//       "Se houver uma conta com esses dados, um link de recuperação foi enviado para o e-mail cadastrado (se configurado).";
+//     showOverlay(overlayRecoverResult);
+
+//     // grava sessão somente em sessionStorage (não persiste entre janelas)
+//     sessionStorage.setItem("km_username", username);
+
+//     // redireciona para página original se fornecida
+//     const params = new URLSearchParams(window.location.search);
+//     const redirect = params.get("redirect");
+//     if (redirect) {
+//       try {
+//         const decoded = decodeURIComponent(redirect);
+//         window.location.href = decoded;
+//         return;
+//       } catch (err) {
+//         console.warn(
+//           "Erro ao decodificar redirect, redirecionando para app.html",
+//           err
+//         );
+//       }
+//     }
+
+//     window.location.href = "app.html";
+//   } catch (err) {
+//     console.error("Erro fetch /api/users login:", err);
+//     loginMsg.style.color = "red";
+//     loginMsg.textContent = "Erro de conexão com o servidor.";
+//   }
+// });
+// === handler de login corrigido: substituir o bloco atual ===
 loginForm.addEventListener("submit", async (e) => {
   e.preventDefault();
   const username = document.getElementById("loginUsername").value.trim();
@@ -116,22 +183,15 @@ loginForm.addEventListener("submit", async (e) => {
 
     const body = await parseResponse(res);
 
-    // após parseResponse(res) ter retornado body
+    // Se a resposta não for OK, mostra a mensagem amigável usando loginMsg
     if (!res.ok) {
-      msgEl.style.color = "red";
-      msgEl.textContent = errorText(body, `Erro ${res.status}`);
-      console.error("Recuperação falhou:", body);
+      loginMsg.style.color = "red";
+      loginMsg.textContent = errorText(body, `Falha no login (${res.status})`);
+      console.error("Login falhou:", body);
       return;
     }
 
-    hideOverlay(overlayRecover);
-    document.getElementById("recResultUser").textContent = username || "";
-    document.getElementById("recResultPassword").value = ""; // sempre vazio
-    document.getElementById("recResultNote").textContent =
-      "Se houver uma conta com esses dados, um link de recuperação foi enviado para o e-mail cadastrado (se configurado).";
-    showOverlay(overlayRecoverResult);
-
-    // grava sessão somente em sessionStorage (não persiste entre janelas)
+    // sucesso: grava sessão somente em sessionStorage (não persiste entre janelas)
     sessionStorage.setItem("km_username", username);
 
     // redireciona para página original se fornecida
@@ -157,6 +217,7 @@ loginForm.addEventListener("submit", async (e) => {
     loginMsg.textContent = "Erro de conexão com o servidor.";
   }
 });
+
 
 // ---- Recuperação de senha ----
 document.getElementById("recCancel").addEventListener("click", () => {
