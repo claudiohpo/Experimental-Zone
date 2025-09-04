@@ -356,9 +356,8 @@ module.exports = async (req, res) => {
           res.statusCode = 429;
           return res.end(
             JSON.stringify({
-              error:
-                "Conta temporariamente bloqueada. Tente novamente mais tarde.",
-              lockedUntil: lockedUntilTs,
+              error: "Conta temporariamente bloqueada.",
+              lockedUntil: lockUntil,
             })
           );
         }
