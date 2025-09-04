@@ -185,8 +185,25 @@ loginForm.addEventListener("submit", async (e) => {
 
     // Se a resposta não for OK, mostra a mensagem amigável usando loginMsg
     if (!res.ok) {
+      const errMsg = errorText(body, `Falha no login (${res.status})`);
+
+      if (res.status === 429 && body && body.lockedUntil) {
+        const remainingMs = body.lockedUntil - Date.now();
+        const remainingSec = Math.ceil(Math.max(0, remainingMs) / 1000);
+
+        const min = Math.floor(remainingSec / 60);
+        const sec = remainingSec % 60;
+
+        if (min > 0) {
+          loginMsg.textContent = `Conta bloqueada. Tente novamente em ${min}m ${sec}s.`;
+        } else {
+          loginMsg.textContent = `Conta bloqueada. Tente novamente em ${sec}s.`;
+        }
+      } else {
+        loginMsg.textContent = errMsg;
+      }
+
       loginMsg.style.color = "red";
-      loginMsg.textContent = errorText(body, `Falha no login (${res.status})`);
       console.error("Login falhou:", body);
       return;
     }
