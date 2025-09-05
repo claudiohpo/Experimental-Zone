@@ -1,4 +1,4 @@
-const loginForm = document.getElementById("loginForm");
+/*const loginForm = document.getElementById("loginForm");
 const loginMsg = document.getElementById("loginMsg");
 const openRegister = document.getElementById("openRegister");
 const openRecover = document.getElementById("openRecover");
@@ -370,11 +370,11 @@ const svgEyeClosed = `
   <path d="M1 1l22 22" stroke="currentColor" />
 </svg>`;
 
-/*
-  Setup: procura inputs com data-password-toggle e insere/reutiliza botões .password-toggle
-  - se input não estiver dentro de .password-wrapper, o script cria o wrapper automaticamente
-  - usa aria-pressed/aria-label para acessibilidade
-*/
+
+  // Setup: procura inputs com data-password-toggle e insere/reutiliza botões .password-toggle
+  // - se input não estiver dentro de .password-wrapper, o script cria o wrapper automaticamente
+  // - usa aria-pressed/aria-label para acessibilidade
+
 (function setupPasswordToggles() {
   const inputs = document.querySelectorAll("input[data-password-toggle]");
 
@@ -446,3 +446,357 @@ function errorText(body, fallback) {
   if (body.message) return body.message;
   return fallback || JSON.stringify(body);
 }
+
+Código Antigo acima
+*/
+
+// js/auth.js (limpo) -------------------------------------------------------
+
+const loginForm = document.getElementById("loginForm");
+const loginMsg = document.getElementById("loginMsg");
+const openRegister = document.getElementById("openRegister");
+const openRecover = document.getElementById("openRecover");
+const overlayRegister = document.getElementById("overlayRegister");
+const registerForm = document.getElementById("registerForm");
+
+// novos elementos (recuperação)
+const overlayRecover = document.getElementById("overlayRecover");
+const recoverForm = document.getElementById("recoverForm");
+const overlayRecoverResult = document.getElementById("overlayRecoverResult");
+
+// temporário: timer global para o contador do login
+let loginLockTimer = null;
+
+function showOverlay(el) {
+  el.classList.add("show");
+  el.setAttribute("aria-hidden", "false");
+}
+function hideOverlay(el) {
+  el.classList.remove("show");
+  el.setAttribute("aria-hidden", "true");
+}
+
+openRegister.addEventListener("click", () => showOverlay(overlayRegister));
+openRecover.addEventListener("click", () => showOverlay(overlayRecover));
+
+document.getElementById("regCancel").addEventListener("click", () =>
+  hideOverlay(overlayRegister)
+);
+
+// Função para tratar a resposta da API
+async function parseResponse(res) {
+  const text = await res.text().catch(() => "");
+  try {
+    return text ? JSON.parse(text) : {};
+  } catch (e) {
+    return { error: text || "Resposta inválida do servidor" };
+  }
+}
+
+// Função utilitária para extrair texto de erro
+function errorText(body, fallback) {
+  if (!body) return fallback || "Erro";
+  if (typeof body === "string") return body;
+  if (body.error) {
+    if (typeof body.error === "string") return body.error;
+    if (body.error.message) return body.error.message;
+    try {
+      return JSON.stringify(body.error);
+    } catch (e) {
+      return fallback || "Erro";
+    }
+  }
+  if (body.message) return body.message;
+  return fallback || JSON.stringify(body);
+}
+
+// --- contador regressivo para bloqueio de login ---
+function stopLockCountdown() {
+  if (loginLockTimer) {
+    clearInterval(loginLockTimer);
+    loginLockTimer = null;
+  }
+}
+
+function startLockCountdown(lockedUntilMs) {
+  stopLockCountdown();
+
+  // garantir número
+  const lockedUntil = Number(lockedUntilMs) || 0;
+
+  function updateCountdown() {
+    const remainingMs = lockedUntil - Date.now();
+    if (remainingMs <= 0) {
+      stopLockCountdown();
+      loginMsg.style.color = "green";
+      loginMsg.textContent = "Pronto — você já pode tentar novamente.";
+      return;
+    }
+
+    const remainingSec = Math.ceil(remainingMs / 1000);
+    const min = Math.floor(remainingSec / 60);
+    const sec = remainingSec % 60;
+
+    if (min > 0) {
+      loginMsg.textContent = `Conta bloqueada. Tente novamente em ${min}m ${sec}s.`;
+    } else {
+      loginMsg.textContent = `Conta bloqueada. Tente novamente em ${sec}s.`;
+    }
+    loginMsg.style.color = "red";
+  }
+
+  // mostrar imediatamente e depois a cada 1s
+  updateCountdown();
+  loginLockTimer = setInterval(updateCountdown, 1000);
+}
+
+// ------------------- Registro -------------------
+registerForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const username = document.getElementById("regUsername").value.trim();
+  const email = document.getElementById("regEmail").value.trim();
+  const password = document.getElementById("regPassword").value;
+  const password2 = document.getElementById("regPassword2").value;
+  const msgEl = document.getElementById("regMsg");
+
+  msgEl.style.color = "#333";
+  msgEl.textContent = "Enviando...";
+
+  if (!username || !email || !password) {
+    msgEl.style.color = "red";
+    msgEl.textContent = "Preencha todos os campos.";
+    return;
+  }
+
+  if (password !== password2) {
+    msgEl.style.color = "red";
+    msgEl.textContent = "Senhas não conferem.";
+    return;
+  }
+
+  try {
+    const res = await fetch("/api/users", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ action: "register", username, email, password }),
+    });
+
+    const body = await parseResponse(res);
+
+    if (!res.ok) {
+      msgEl.style.color = "red";
+      msgEl.textContent = errorText(body, `Erro ${res.status}`);
+      console.error("Cadastro falhou:", body);
+      return;
+    }
+
+    msgEl.style.color = "green";
+    msgEl.textContent = "Cadastro concluído. Faça login.";
+    setTimeout(() => hideOverlay(overlayRegister), 1000);
+  } catch (err) {
+    console.error("Erro fetch /api/users register:", err);
+    msgEl.style.color = "red";
+    msgEl.textContent = "Erro de conexão com o servidor.";
+  }
+});
+
+// ------------------- Login -------------------
+loginForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  // limpa mensagens anteriores
+  stopLockCountdown();
+
+  const username = document.getElementById("loginUsername").value.trim();
+  const password = document.getElementById("loginPassword").value;
+  loginMsg.style.color = "#333";
+  loginMsg.textContent = "Validando...";
+
+  if (!username || !password) {
+    loginMsg.style.color = "red";
+    loginMsg.textContent = "Preencha usuário e senha.";
+    return;
+  }
+
+  try {
+    const res = await fetch("/api/users", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ action: "login", username, password }),
+    });
+
+    const body = await parseResponse(res);
+
+    if (!res.ok) {
+      // trata bloqueio específico (429 + lockedUntil)
+      if (res.status === 429 && body && body.lockedUntil) {
+        // iniciar contador regressivo (converte para número se string)
+        startLockCountdown(Number(body.lockedUntil));
+        console.warn("Login bloqueado até:", new Date(Number(body.lockedUntil)).toISOString());
+        return;
+      }
+
+      // caso geral de falha
+      loginMsg.style.color = "red";
+      loginMsg.textContent = errorText(body, `Falha no login (${res.status})`);
+      console.error("Login falhou:", body);
+      return;
+    }
+
+    // sucesso: limpa contador se houver
+    stopLockCountdown();
+
+    // salva sessão e redireciona
+    sessionStorage.setItem("km_username", username);
+
+    const params = new URLSearchParams(window.location.search);
+    const redirect = params.get("redirect");
+    if (redirect) {
+      try {
+        const decoded = decodeURIComponent(redirect);
+        window.location.href = decoded;
+        return;
+      } catch (err) {
+        console.warn("Erro ao decodificar redirect, redirecionando para app.html", err);
+      }
+    }
+
+    window.location.href = "app.html";
+  } catch (err) {
+    console.error("Erro fetch /api/users login:", err);
+    loginMsg.style.color = "red";
+    loginMsg.textContent = "Erro de conexão com o servidor.";
+  }
+});
+
+// ---- Recuperação de senha ----
+document.getElementById("recCancel").addEventListener("click", () => {
+  // limpar campos e mensagem
+  document.getElementById("recUsername").value = "";
+  document.getElementById("recEmail").value = "";
+  document.getElementById("recMsg").textContent = "";
+  hideOverlay(overlayRecover);
+});
+
+recoverForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const username = document.getElementById("recUsername").value.trim();
+  const email = document.getElementById("recEmail").value.trim();
+  const msgEl = document.getElementById("recMsg");
+
+  msgEl.style.color = "#333";
+  msgEl.textContent = "Consultando...";
+
+  if (!username || !email) {
+    msgEl.style.color = "red";
+    msgEl.textContent = "Preencha usuário e email.";
+    return;
+  }
+
+  try {
+    const res = await fetch("/api/users", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ action: "recover", username, email }),
+    });
+
+    const body = await parseResponse(res);
+
+    if (!res.ok) {
+      msgEl.style.color = "red";
+      msgEl.textContent = errorText(body, `Erro ${res.status}`);
+      console.error("Recuperação falhou:", body);
+      return;
+    }
+
+    hideOverlay(overlayRecover);
+    document.getElementById("recResultUser").textContent = username || "";
+    document.getElementById("recResultPassword").value = ""; // limpar
+    document.getElementById("recResultNote").textContent =
+      "Se houver uma conta com esses dados, um link de recuperação foi enviado para o e-mail cadastrado (se configurado).";
+    showOverlay(overlayRecoverResult);
+  } catch (err) {
+    console.error("Erro fetch /api/users recover:", err);
+    msgEl.style.color = "red";
+    msgEl.textContent = "Erro de conexão com o servidor.";
+  }
+});
+
+document.getElementById("recResultOk").addEventListener("click", () => {
+  hideOverlay(overlayRecoverResult);
+  document.getElementById("recUsername").value = "";
+  document.getElementById("recEmail").value = "";
+  document.getElementById("recMsg").textContent = "";
+  const resultInput = document.getElementById("recResultPassword");
+  if (resultInput) resultInput.value = "";
+});
+
+// SVGs e toggle de senha (mantive igual ao seu)
+const svgEyeOpen = `
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+  <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/>
+  <circle cx="12" cy="12" r="3.2" fill="currentColor" />
+</svg>`;
+
+const svgEyeClosed = `
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+  <path d="M17.94 17.94A10.95 10.95 0 0 1 12 19c-7 0-11-7-11-7 1.38-3.73 4.58-6.35 8.45-6.85" />
+  <path d="M22.54 16.88A20.22 20.22 0 0 0 23 12s-4-7-11-7c-1.97 0-3.84.45-5.53 1.24" />
+  <path d="M1 1l22 22" stroke="currentColor" />
+</svg>`;
+
+(function setupPasswordToggles() {
+  const inputs = document.querySelectorAll("input[data-password-toggle]");
+
+  inputs.forEach((input) => {
+    // garantir que o input esteja dentro de um .password-wrapper
+    let wrapper = input.closest(".password-wrapper");
+    if (!wrapper) {
+      wrapper = document.createElement("div");
+      wrapper.className = "password-wrapper";
+      input.parentNode.insertBefore(wrapper, input);
+      wrapper.appendChild(input);
+    }
+
+    // procurar botão existente, se não existir criar
+    let btn = wrapper.querySelector(".password-toggle");
+    if (!btn) {
+      btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "password-toggle";
+      btn.setAttribute("aria-label", "Mostrar senha");
+      btn.setAttribute("aria-pressed", "false");
+      wrapper.appendChild(btn);
+    }
+
+    btn.innerHTML = svgEyeOpen;
+    btn.setAttribute("aria-pressed", "false");
+    btn.setAttribute("aria-label", "Mostrar senha");
+
+    btn.addEventListener("click", function () {
+      const isPassword = input.type === "password";
+      if (isPassword) {
+        input.type = "text";
+        btn.innerHTML = svgEyeClosed;
+        btn.setAttribute("aria-pressed", "true");
+        btn.setAttribute("aria-label", "Ocultar senha");
+      } else {
+        input.type = "password";
+        btn.innerHTML = svgEyeOpen;
+        btn.setAttribute("aria-pressed", "false");
+        btn.setAttribute("aria-label", "Mostrar senha");
+      }
+    });
+
+    btn.addEventListener("keydown", function (e) {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        btn.click();
+      }
+    });
+  });
+})();
+
+// ---------------------------------------------------------------------------
+
+
