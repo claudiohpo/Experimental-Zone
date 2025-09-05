@@ -97,6 +97,7 @@ button#downloadCsv {
     margin-top: 10px;
     color: green;
     font-weight: 600;
+    text-align: center
 }
 
 @media(max-width:520px) {

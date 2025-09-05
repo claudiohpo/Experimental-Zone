@@ -731,7 +731,7 @@ document.getElementById("recResultOk").addEventListener("click", () => {
   if (resultInput) resultInput.value = "";
 });
 
-// SVGs e toggle de senha (mantive igual ao seu)
+// SVGs e toggle de senha 
 const svgEyeOpen = `
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
   <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/>
@@ -796,7 +796,3 @@ const svgEyeClosed = `
     });
   });
 })();
-
-// ---------------------------------------------------------------------------
-
-
